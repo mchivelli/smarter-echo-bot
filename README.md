@@ -21,15 +21,18 @@ Use Raspberry Pi Imager to flash **Raspberry Pi OS Lite (64-bit)** with:
 - WiFi configured
 - SSH enabled
 
-### 2. Clone and Run
+### 2. Install Git and Clone Repository
 
 ```bash
 # SSH into your Pi
 ssh pi@raspberrypi.local
 
+# Install Git (required for Raspberry Pi OS Lite)
+sudo apt update && sudo apt install -y git
+
 # Clone this repository
-git clone https://github.com/YOUR_USERNAME/wyoming-satellite-setup.git
-cd wyoming-satellite-setup
+git clone https://github.com/mchivelli/smarter-echo-bot.git
+cd smarter-echo-bot
 
 # Make script executable
 chmod +x setup_wyoming_satellite.sh
