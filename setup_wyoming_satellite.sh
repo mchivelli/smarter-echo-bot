@@ -125,13 +125,58 @@ fi
 if ! is_step_completed "respeaker_drivers"; then
     if [[ "$MIC_DEVICE" == *"seeed"* ]]; then
         print_status "Installing ReSpeaker drivers (this will take a while)..."
+        print_warning "Backing up SSH configuration to prevent connection issues..."
+        
+        # Backup SSH configuration
+        cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
+        cp /etc/systemd/system/ssh.service /etc/systemd/system/ssh.service.backup 2>/dev/null || true
+        
+        # Create SSH recovery script
+        cat > /tmp/restore_ssh.sh << 'SSH_RECOVERY_EOF'
+#!/bin/bash
+echo "Restoring SSH after driver installation..."
+systemctl enable ssh
+systemctl start ssh
+# Force SSH to accept connections
+echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
+echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+systemctl restart ssh
+echo "SSH recovery complete"
+SSH_RECOVERY_EOF
+        chmod +x /tmp/restore_ssh.sh
+        
+        # Create systemd service to run SSH recovery on boot
+        cat > /etc/systemd/system/ssh-recovery.service << 'SSH_SERVICE_EOF'
+[Unit]
+Description=SSH Recovery After Driver Installation
+After=network.target
+Before=ssh.service
+
+[Service]
+Type=oneshot
+ExecStart=/tmp/restore_ssh.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+SSH_SERVICE_EOF
+        
+        systemctl enable ssh-recovery.service
+        
         cd "$USER_HOME/wyoming-satellite"
         bash etc/install-respeaker-drivers.sh || true
         mark_step_completed "respeaker_drivers"
         
-        print_warning "Drivers installed. System will reboot in 10 seconds..."
-        print_warning "After reboot, run this script again to continue setup."
-        sleep 10
+        print_warning "Drivers installed. System will reboot in 15 seconds..."
+        print_warning "SSH recovery service has been installed to restore SSH after reboot."
+        print_warning "After reboot, wait 3-5 minutes then try SSH again."
+        print_warning "If SSH still fails, the Pi will auto-recover in 10 minutes."
+        
+        # Create a cron job for additional SSH recovery
+        echo "*/2 * * * * root /tmp/restore_ssh.sh >/dev/null 2>&1" >> /etc/crontab
+        
+        sleep 15
         reboot
     else
         print_status "Non-ReSpeaker device detected, skipping driver installation..."
