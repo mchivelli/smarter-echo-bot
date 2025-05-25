@@ -35,12 +35,30 @@ SATELLITE_NAME="${WYOMING_SATELLITE_NAME:-${SATELLITE_NAME:-my-satellite}}"
 MIC_DEVICE="${WYOMING_MIC_DEVICE:-${MIC_DEVICE:-plughw:CARD=seeed2micvoicec,DEV=0}}"
 SND_DEVICE="${WYOMING_SND_DEVICE:-${SND_DEVICE:-plughw:CARD=seeed2micvoicec,DEV=0}}"
 WAKE_WORD="${WYOMING_WAKE_WORD:-${WAKE_WORD:-ok_nabu}}"
-USER_HOME="${WYOMING_USER_HOME:-${USER_HOME:-/home/pi}}"
+
+# Auto-detect user home directory
+CURRENT_USER=$(logname 2>/dev/null || echo "${SUDO_USER:-$(whoami)}")
+DEFAULT_USER_HOME="/home/${CURRENT_USER}"
+USER_HOME="${WYOMING_USER_HOME:-${USER_HOME:-$DEFAULT_USER_HOME}}"
+
+# Validate USER_HOME exists
+if [[ ! -d "$USER_HOME" ]]; then
+    print_error "User home directory '$USER_HOME' does not exist!"
+    print_error "Please set USER_HOME in wyoming.conf or as environment variable"
+    exit 1
+fi
+
 MIC_AUTO_GAIN="${WYOMING_MIC_AUTO_GAIN:-${MIC_AUTO_GAIN:-5}}"
 MIC_NOISE_SUPPRESSION="${WYOMING_MIC_NOISE_SUPPRESSION:-${MIC_NOISE_SUPPRESSION:-2}}"
 LED_BRIGHTNESS="${WYOMING_LED_BRIGHTNESS:-${LED_BRIGHTNESS:-10}}"
 MIC_VOLUME_MULTIPLIER="${WYOMING_MIC_VOLUME_MULTIPLIER:-${MIC_VOLUME_MULTIPLIER:-}}"
 SND_VOLUME_MULTIPLIER="${WYOMING_SND_VOLUME_MULTIPLIER:-${SND_VOLUME_MULTIPLIER:-}}"
+
+print_status "Using configuration:"
+print_status "  User: $CURRENT_USER"
+print_status "  Home: $USER_HOME"
+print_status "  Satellite: $SATELLITE_NAME"
+print_status "  Wake word: $WAKE_WORD"
 
 # Function to print colored output
 print_status() {
