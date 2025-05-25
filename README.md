@@ -20,18 +20,24 @@ A complete voice assistant system using Wyoming Satellite Protocol on Raspberry 
 2. **Enable SSH** in Raspberry Pi Imager or add `ssh` file to boot partition
 3. **Boot Pi and connect via SSH**
 
-### **Step 2: Run SSH-Safe Setup**
+### **Step 2: Install Git and Clone Repository**
 ```bash
+# Install Git (required for Raspberry Pi OS Lite)
+sudo apt update && sudo apt install -y git
+
 # Clone repository
 git clone https://github.com/mchivelli/smarter-echo-bot.git
 cd smarter-echo-bot
+```
 
+### **Step 3: Run SSH-Safe Setup**
+```bash
 # Run SSH-safe setup
 chmod +x setup_wyoming_satellite_v3.sh
 ./setup_wyoming_satellite_v3.sh
 ```
 
-### **Step 3: Verify Everything Works**
+### **Step 4: Verify Everything Works**
 ```bash
 # Check SSH is still working (should be!)
 ssh prototype@your-pi-ip

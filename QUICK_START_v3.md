@@ -10,21 +10,27 @@ This version **PREVENTS** SSH corruption during ReSpeaker driver installation!
 - SSH enabled and working
 - Internet connection
 
-## 🎯 **3-Step Setup**
+## 🎯 **4-Step Setup**
 
-### **Step 1: Clone Repository**
+### **Step 1: Install Git**
+```bash
+# Install Git (required for Raspberry Pi OS Lite)
+sudo apt update && sudo apt install -y git
+```
+
+### **Step 2: Clone Repository**
 ```bash
 git clone https://github.com/mchivelli/smarter-echo-bot.git
 cd smarter-echo-bot
 ```
 
-### **Step 2: Run SSH-Safe Setup**
+### **Step 3: Run SSH-Safe Setup**
 ```bash
 chmod +x setup_wyoming_satellite_v3.sh
 ./setup_wyoming_satellite_v3.sh
 ```
 
-### **Step 3: Verify Success**
+### **Step 4: Verify Success**
 ```bash
 # SSH should still work (this was the problem before!)
 ssh prototype@your-pi-ip
