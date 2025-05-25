@@ -18,6 +18,25 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Function to print colored output
+print_status() {
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+# Check if running as root
+if [[ $EUID -ne 0 ]]; then
+   print_error "This script must be run as root (use sudo)"
+   exit 1
+fi
+
 # Load configuration file if it exists
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${SCRIPT_DIR}/wyoming.conf"
@@ -59,25 +78,6 @@ print_status "  User: $CURRENT_USER"
 print_status "  Home: $USER_HOME"
 print_status "  Satellite: $SATELLITE_NAME"
 print_status "  Wake word: $WAKE_WORD"
-
-# Function to print colored output
-print_status() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-# Check if running as root
-if [[ $EUID -ne 0 ]]; then
-   print_error "This script must be run as root (use sudo)"
-   exit 1
-fi
 
 # Create marker file to track installation progress
 MARKER_DIR="/var/lib/wyoming-satellite-setup"
