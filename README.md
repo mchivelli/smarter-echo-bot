@@ -1,247 +1,209 @@
-# Wyoming Satellite Auto-Setup
+# SmarterAlexa - Home Assistant Echo Bot
 
-Automated setup script for Wyoming Satellite on Raspberry Pi with Home Assistant integration.
+A complete voice assistant system using Wyoming Satellite Protocol on Raspberry Pi, integrated with n8n and AI for conversation-style home control.
 
-## Features
+## 🚨 **SSH-SAFE SETUP v3.0** 🚨
 
-- 🎤 **Complete Audio Setup** - Automatic microphone and speaker configuration
-- 🔊 **ReSpeaker Support** - Full support for 2Mic/4Mic HATs with LED indicators
-- 🗣️ **Wake Word Detection** - Local wake word processing with openWakeWord
-- 🏠 **Home Assistant Ready** - Instant discovery via Wyoming Protocol
-- 🔄 **Resume After Reboot** - Handles driver installation reboots gracefully
-- 🎯 **Smart Defaults** - Works out-of-the-box with common hardware
-- 🛠️ **Easy Customization** - Simple configuration file for tweaking settings
+**This version PREVENTS SSH corruption during ReSpeaker driver installation!**
 
-## Quick Start
+### ✅ **What's New in v3.0:**
+- **🔒 Automatic SSH backup** before any driver installation
+- **🛡️ SSH recovery service** that runs on every boot
+- **🔍 Continuous SSH monitoring** during setup
+- **🔄 Automatic restoration** if SSH breaks
+- **📋 Comprehensive logging** of all operations
 
-### 1. Flash Raspberry Pi OS
+## 🎯 **Quick Start (SSH-Safe)**
 
-Use Raspberry Pi Imager to flash **Raspberry Pi OS Lite (64-bit)** with:
-- Username/password set
-- WiFi configured
-- SSH enabled
+### **Step 1: Fresh Raspberry Pi Setup**
+1. **Flash Raspberry Pi OS** (64-bit Lite recommended)
+2. **Enable SSH** in Raspberry Pi Imager or add `ssh` file to boot partition
+3. **Boot Pi and connect via SSH**
 
-### 2. Install Git and Clone Repository
-
+### **Step 2: Run SSH-Safe Setup**
 ```bash
-# SSH into your Pi
-ssh pi@raspberrypi.local
-
-# Install Git (required for Raspberry Pi OS Lite)
-sudo apt update && sudo apt install -y git
-
-# Clone this repository
+# Clone repository
 git clone https://github.com/mchivelli/smarter-echo-bot.git
 cd smarter-echo-bot
 
-# Make script executable
-chmod +x setup_wyoming_satellite.sh
-
-# Run the setup (will reboot once for drivers)
-sudo ./setup_wyoming_satellite.sh
+# Run SSH-safe setup
+chmod +x setup_wyoming_satellite_v3.sh
+./setup_wyoming_satellite_v3.sh
 ```
 
-### 3. Configure Home Assistant
-
-After setup completes:
-1. Go to Home Assistant → Settings → Devices & Services
-2. Look for "Discovered" Wyoming Protocol device
-3. Click "Configure" and assign to an area
-
-## Configuration
-
-Edit `wyoming.conf` before running the script to customize:
-
+### **Step 3: Verify Everything Works**
 ```bash
-# Satellite name (appears in Home Assistant)
-SATELLITE_NAME="living-room"
+# Check SSH is still working (should be!)
+ssh prototype@your-pi-ip
 
-# Audio devices
-MIC_DEVICE="plughw:CARD=seeed2micvoicec,DEV=0"
-SND_DEVICE="plughw:CARD=seeed2micvoicec,DEV=0"
-
-# Wake word (ok_nabu, hey_jarvis, alexa, etc.)
-WAKE_WORD="ok_nabu"
-
-# Audio enhancements
-MIC_AUTO_GAIN="5"         # 0-31 (louder)
-MIC_NOISE_SUPPRESSION="2"  # 0-4 (more suppression)
-LED_BRIGHTNESS="10"        # 1-31 (brighter)
+# Check services
+sudo systemctl status wyoming-satellite
+sudo systemctl status wyoming-openwakeword
+sudo systemctl status ssh-recovery
 ```
 
-## Supported Hardware
+## 🛡️ **SSH Protection Features**
 
-### Microphones
-- ✅ ReSpeaker 2Mic HAT
-- ✅ ReSpeaker 4Mic HAT
-- ✅ USB microphones
-- ✅ Generic ALSA devices
+### **Before ReSpeaker Installation:**
+- ✅ Complete SSH configuration backup
+- ✅ SSH host keys backup  
+- ✅ Recovery service installation
+- ✅ SSH functionality verification
 
-### Raspberry Pi Models
-- ✅ Raspberry Pi Zero 2 W
-- ✅ Raspberry Pi 3B/3B+
-- ✅ Raspberry Pi 4B
-- ✅ Raspberry Pi 5
+### **During ReSpeaker Installation:**
+- ✅ Real-time SSH monitoring
+- ✅ Immediate recovery if issues detected
+- ✅ Automatic restoration from backup
 
-## Environment Variables
+### **After Installation:**
+- ✅ SSH functionality verification
+- ✅ Recovery service enabled for future boots
+- ✅ Backup available for manual recovery
 
-You can also configure via environment variables:
+## 📁 **Project Structure**
 
-```bash
-export WYOMING_SATELLITE_NAME="kitchen"
-export WYOMING_MIC_DEVICE="default"
-export WYOMING_WAKE_WORD="hey_jarvis"
-sudo -E ./setup_wyoming_satellite.sh
+```
+smarter-echo-bot/
+├── setup_wyoming_satellite_v3.sh    # SSH-Safe setup script
+├── ssh_fix_boot_v2.sh               # Emergency SSH recovery
+├── fix_ssh_automated.bat            # Windows recovery tool
+├── wyoming.conf                     # Wyoming configuration
+├── n8n_workflow_steps.md            # n8n setup guide
+├── implementation_checklist.md      # Phase-by-phase guide
+├── local_llm_setup.md              # Local AI setup
+└── README.md                       # This file
 ```
 
-## Finding Audio Devices
+## 🏗️ **System Architecture**
 
-To list available devices:
-
-```bash
-# Microphones
-arecord -L
-
-# Speakers
-aplay -L
+```
+┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
+│   Raspberry Pi  │    │   n8n.cloud  │    │ Home Assistant │
+│                 │    │              │    │                │
+│ Wyoming         │◄──►│ Ollama Shim  │◄──►│ Assist API     │
+│ Satellite       │    │ + OpenAI     │    │                │
+│                 │    │              │    │                │
+│ Wake: "Ok Nabu" │    │ Conversation │    │ Device Control │
+└─────────────────┘    └──────────────┘    └─────────────────┘
 ```
 
-Look for devices starting with `plughw:` or use `default`.
+## 🔧 **Hardware Requirements**
 
-## Services Created
+- **Raspberry Pi Zero 2 W** (or Pi 4/5)
+- **ReSpeaker 2Mic HAT** (or compatible microphone)
+- **MicroSD Card** (32GB+ recommended)
+- **Stable internet connection**
 
-The script creates three systemd services:
+## 🌐 **Network Setup**
 
-- `wyoming-satellite.service` - Main satellite service
-- `wyoming-openwakeword.service` - Wake word detection
-- `2mic_leds.service` - LED indicators (ReSpeaker only)
+The system works with:
+- ✅ **Home WiFi networks**
+- ✅ **Mobile hotspots** 
+- ✅ **Dynamic IP addresses**
+- ✅ **Remote access** via port forwarding/VPN
 
-### Useful Commands
+## 🚀 **Service Management**
 
 ```bash
-# View logs
-journalctl -u wyoming-satellite.service -f
+# Start services
+sudo systemctl start wyoming-satellite wyoming-openwakeword
 
-# Restart services
-sudo systemctl restart wyoming-satellite.service
+# Stop services  
+sudo systemctl stop wyoming-satellite wyoming-openwakeword
 
 # Check status
-sudo systemctl status wyoming-satellite.service
+sudo systemctl status wyoming-satellite
+sudo systemctl status wyoming-openwakeword
+sudo systemctl status ssh-recovery
 
-# Stop all services
-sudo systemctl stop wyoming-satellite.service
+# View logs
+journalctl -u wyoming-satellite -f
+journalctl -u wyoming-openwakeword -f
 ```
 
-## Troubleshooting
+## 🔄 **SSH Recovery (If Needed)**
 
-### No Audio Response
+### **Automatic Recovery:**
+The system includes automatic SSH recovery that runs on every boot.
 
-1. Check audio devices are correct:
-   ```bash
-   arecord -L
-   aplay -L
-   ```
+### **Manual Recovery:**
+If SSH still fails, use the emergency recovery tools:
 
-2. Test recording:
-   ```bash
-   arecord -D YOUR_DEVICE -d 5 test.wav
-   aplay -D YOUR_DEVICE test.wav
-   ```
+1. **Windows Users:** Run `fix_ssh_automated.bat`
+2. **SD Card Method:** Use `ssh_fix_boot_v2.sh` on boot partition
+3. **Console Access:** Connect monitor/keyboard and run recovery
 
-### Service Won't Start
+### **Recovery Locations:**
+- SSH backups: `/home/username/ssh_backup_*`
+- Recovery logs: `/var/log/ssh_recovery.log`
+- Setup logs: `/home/username/setup.log`
 
-Check logs for errors:
+## 📋 **Troubleshooting**
+
+### **SSH Issues:**
 ```bash
-journalctl -u wyoming-satellite.service -n 50
+# Check SSH recovery service
+sudo systemctl status ssh-recovery
+
+# Manual SSH recovery
+sudo /usr/local/bin/ssh_recovery.sh
+
+# View recovery logs
+sudo tail -f /var/log/ssh_recovery.log
 ```
 
-### Wake Word Not Working
-
-1. Check openWakeWord is running:
-   ```bash
-   sudo systemctl status wyoming-openwakeword.service
-   ```
-
-2. Try different wake words in `wyoming.conf`
-
-### LED Not Working
-
-Ensure SPI is enabled:
+### **Audio Issues:**
 ```bash
-sudo raspi-config
-# Interface Options → SPI → Enable
+# Test microphone
+arecord -D plughw:CARD=seeed2micvoicec,DEV=0 -r 16000 -c 1 -f S16_LE -d 5 test.wav
+
+# Test speaker
+aplay -D plughw:CARD=seeed2micvoicec,DEV=0 test.wav
+
+# List audio devices
+aplay -l
+arecord -l
 ```
 
-## Uninstalling
-
-An uninstall script is created at `~/uninstall_wyoming.sh`:
-
+### **Service Issues:**
 ```bash
-sudo ~/uninstall_wyoming.sh
+# Restart Wyoming services
+sudo systemctl restart wyoming-satellite wyoming-openwakeword
+
+# Check service logs
+journalctl -u wyoming-satellite --since "1 hour ago"
 ```
 
-This removes all services but keeps the code directories.
+## 🔗 **Integration Guides**
 
-## Manual Installation Progress
+- **[n8n Workflow Setup](n8n_workflow_steps.md)** - Complete n8n configuration
+- **[Device Control](n8n_device_control_workflow.md)** - Home Assistant integration  
+- **[Local LLM Setup](local_llm_setup.md)** - Self-hosted AI models
+- **[Implementation Checklist](implementation_checklist.md)** - Step-by-step guide
 
-If the script is interrupted, it tracks progress in `/var/lib/wyoming-satellite-setup/`. 
-Delete this directory to start fresh:
+## 🆘 **Emergency Contacts**
 
-```bash
-sudo rm -rf /var/lib/wyoming-satellite-setup/
-```
+If you encounter issues:
 
-## Advanced Configuration
+1. **Check logs first:** `/home/username/setup.log`
+2. **SSH recovery:** Use automated recovery tools
+3. **Service issues:** Restart Wyoming services
+4. **Hardware issues:** Verify ReSpeaker HAT connection
 
-### Custom Wake Words
+## 📝 **Version History**
 
-Add more wake words by editing the openWakeWord service or using custom models.
+- **v3.0** - SSH-Safe Edition with automatic recovery
+- **v2.0** - Enhanced recovery tools and automation
+- **v1.0** - Initial Wyoming Satellite setup
 
-### Audio Processing
+## 🎉 **Success Indicators**
 
-Adjust in `wyoming.conf`:
-- `MIC_AUTO_GAIN`: 0-31 dBFS
-- `MIC_NOISE_SUPPRESSION`: 0-4
-- `MIC_VOLUME_MULTIPLIER`: e.g., 1.5 for 50% louder
-- `SND_VOLUME_MULTIPLIER`: e.g., 0.8 for 20% quieter
+After successful setup, you should have:
 
-### Multiple Satellites
+- ✅ **SSH working** and protected by recovery service
+- ✅ **Wyoming services running** and auto-starting
+- ✅ **Audio devices detected** and configured
+- ✅ **Wake word detection** responding to "Ok Nabu"
+- ✅ **Home Assistant discovery** showing Wyoming satellite
 
-Run the script with different names:
-```bash
-WYOMING_SATELLITE_NAME="bedroom" sudo -E ./setup_wyoming_satellite.sh
-WYOMING_SATELLITE_NAME="kitchen" sudo -E ./setup_wyoming_satellite.sh
-```
-
-## Integration with Home Assistant
-
-Once connected, you can:
-- Use in Assist pipelines
-- Create automations triggered by wake words
-- Send TTS messages to specific satellites
-- Monitor satellite status
-
-Example automation:
-```yaml
-automation:
-  - alias: "Satellite LED Feedback"
-    trigger:
-      - platform: event
-        event_type: wyoming_satellite_active
-    action:
-      - service: light.turn_on
-        target:
-          entity_id: light.room_led
-```
-
-## Contributing
-
-Pull requests welcome! Please test on your hardware and update the compatibility list.
-
-## License
-
-MIT License - See LICENSE file
-
-## Credits
-
-Based on the official [Wyoming Satellite](https://github.com/rhasspy/wyoming-satellite) tutorial. 
+**Your voice assistant is ready for n8n integration!** 🚀 
