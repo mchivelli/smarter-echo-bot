@@ -5,6 +5,26 @@
 
 set -e  # Exit on any error
 
+# Check if running as root and warn
+if [ "$EUID" -eq 0 ]; then 
+   echo "⚠️  WARNING: Running as root. It's recommended to run this script as a regular user."
+   echo "The script will use 'sudo' where needed for system operations."
+   echo "Press Ctrl+C to cancel, or wait 5 seconds to continue..."
+   sleep 5
+fi
+
+# Determine the actual user (even if running with sudo)
+if [ -n "$SUDO_USER" ]; then
+    ACTUAL_USER="$SUDO_USER"
+    USER_HOME="/home/$SUDO_USER"
+else
+    ACTUAL_USER="$(whoami)"
+    USER_HOME="$HOME"
+fi
+
+# Create log directory if it doesn't exist
+mkdir -p "$USER_HOME"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -14,41 +34,53 @@ NC='\033[0m' # No Color
 
 # Logging function
 log() {
-    echo -e "${GREEN}[$(date '+%H:%M:%S')]${NC} $1" | tee -a /home/$(whoami)/setup.log
+    echo -e "${GREEN}[$(date '+%H:%M:%S')]${NC} $1" | tee -a "$USER_HOME/setup.log"
 }
 
 error() {
-    echo -e "${RED}[ERROR]${NC} $1" | tee -a /home/$(whoami)/setup.log
+    echo -e "${RED}[ERROR]${NC} $1" | tee -a "$USER_HOME/setup.log"
 }
 
 warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1" | tee -a /home/$(whoami)/setup.log
+    echo -e "${YELLOW}[WARNING]${NC} $1" | tee -a "$USER_HOME/setup.log"
 }
 
 info() {
-    echo -e "${BLUE}[INFO]${NC} $1" | tee -a /home/$(whoami)/setup.log
+    echo -e "${BLUE}[INFO]${NC} $1" | tee -a "$USER_HOME/setup.log"
+}
+
+# Function to run commands as the actual user
+run_as_user() {
+    if [ "$EUID" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+        sudo -u "$SUDO_USER" -H bash -c "$1"
+    else
+        bash -c "$1"
+    fi
 }
 
 # Function to backup SSH configuration
 backup_ssh() {
     log "🔒 Creating comprehensive SSH backup..."
     
-    local backup_dir="/home/$(whoami)/ssh_backup_$(date +%Y%m%d_%H%M%S)"
-    mkdir -p "$backup_dir"
+    local backup_dir="$USER_HOME/ssh_backup_$(date +%Y%m%d_%H%M%S)"
+    run_as_user "mkdir -p '$backup_dir'"
     
     # Backup SSH daemon configuration
     if [ -f /etc/ssh/sshd_config ]; then
         sudo cp /etc/ssh/sshd_config "$backup_dir/"
+        sudo chown "$ACTUAL_USER:$ACTUAL_USER" "$backup_dir/sshd_config"
         log "✅ SSH daemon config backed up"
     fi
     
     # Backup SSH host keys
     sudo cp /etc/ssh/ssh_host_* "$backup_dir/" 2>/dev/null || true
+    sudo chown "$ACTUAL_USER:$ACTUAL_USER" "$backup_dir"/ssh_host_* 2>/dev/null || true
     log "✅ SSH host keys backed up"
     
     # Backup SSH client config
     if [ -f /etc/ssh/ssh_config ]; then
         sudo cp /etc/ssh/ssh_config "$backup_dir/"
+        sudo chown "$ACTUAL_USER:$ACTUAL_USER" "$backup_dir/ssh_config"
     fi
     
     # Create a restore script
@@ -86,10 +118,11 @@ EOF
     chmod +x "$backup_dir/restore_ssh.sh"
     
     # Create symlink to latest backup
-    ln -sfn "$backup_dir" "/home/$(whoami)/ssh_backup_latest"
+    run_as_user "ln -sfn '$backup_dir' '$USER_HOME/ssh_backup_latest'"
     
     log "✅ SSH backup created at: $backup_dir"
-    echo "$backup_dir" > /home/$(whoami)/.ssh_backup_path
+    echo "$backup_dir" > "$USER_HOME/.ssh_backup_path"
+    chown "$ACTUAL_USER:$ACTUAL_USER" "$USER_HOME/.ssh_backup_path"
 }
 
 # Function to create SSH recovery service
@@ -241,9 +274,9 @@ install_respeaker_safe() {
     log "📋 SSH is working, proceeding with ReSpeaker driver installation..."
     
     # Clone ReSpeaker repository
-    cd /home/$(whoami)
+    cd "$USER_HOME"
     if [ ! -d "seeed-voicecard" ]; then
-        git clone https://github.com/respeaker/seeed-voicecard.git
+        run_as_user "git clone https://github.com/respeaker/seeed-voicecard.git"
     fi
     
     cd seeed-voicecard
@@ -274,7 +307,7 @@ install_respeaker_safe() {
         sleep 5
         if ! test_ssh_working; then
             error "❌ SSH recovery failed. Manual intervention required."
-            log "📋 SSH backup available at: $(cat /home/$(whoami)/.ssh_backup_path 2>/dev/null || echo 'Unknown')"
+            log "📋 SSH backup available at: $(cat $USER_HOME/.ssh_backup_path 2>/dev/null || echo 'Unknown')"
         else
             log "✅ SSH recovery successful"
         fi
@@ -287,8 +320,9 @@ install_respeaker_safe() {
 main() {
     log "🚀 Starting Wyoming Satellite Setup v3.0 - SSH-Safe Edition"
     log "📅 $(date)"
-    log "👤 Running as user: $(whoami)"
+    log "👤 Running as user: $ACTUAL_USER"
     log "📁 Working directory: $(pwd)"
+    log "🏠 User home: $USER_HOME"
     
     # Update system
     log "📦 Updating system packages..."
@@ -296,32 +330,43 @@ main() {
     
     # Install essential packages
     log "📦 Installing essential packages..."
-    sudo apt install -y git python3 python3-pip python3-venv curl wget build-essential
+    sudo apt install -y git python3 python3-pip python3-venv curl wget build-essential portaudio19-dev
     
     # Install Wyoming Satellite
     log "🛰️ Installing Wyoming Satellite..."
     
-    # Create virtual environment
-    python3 -m venv /home/$(whoami)/wyoming-satellite
-    source /home/$(whoami)/wyoming-satellite/bin/activate
+    # Create virtual environment as actual user
+    run_as_user "python3 -m venv $USER_HOME/wyoming-satellite"
+    
+    # Create activation script for easier use
+    log "📋 Creating activation script..."
+    cat > "$USER_HOME/activate_wyoming.sh" << EOF
+#!/bin/bash
+source $USER_HOME/wyoming-satellite/bin/activate
+echo "✅ Wyoming Satellite virtual environment activated"
+echo "📁 Working directory: $USER_HOME"
+EOF
+    chmod +x "$USER_HOME/activate_wyoming.sh"
+    chown "$ACTUAL_USER:$ACTUAL_USER" "$USER_HOME/activate_wyoming.sh"
     
     # Install Wyoming packages with dependency fix
-    pip install --upgrade pip
+    log "📦 Installing Wyoming packages..."
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install --upgrade pip"
     
     # Install TensorFlow Lite runtime first (fixes ARM64 dependency issues)
     log "🔧 Installing TensorFlow Lite runtime for ARM64..."
-    pip install --extra-index-url https://google-coral.github.io/py-repo/ tflite_runtime
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install --extra-index-url https://google-coral.github.io/py-repo/ tflite_runtime"
     
     # Install Wyoming packages separately to avoid conflicts
     log "📦 Installing Wyoming Satellite..."
-    pip install wyoming-satellite
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install wyoming-satellite"
     
     log "📦 Installing Wyoming OpenWakeWord..."
-    pip install wyoming-openwakeword --no-deps
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install wyoming-openwakeword --no-deps"
     
     # Install remaining dependencies manually
     log "📦 Installing remaining dependencies..."
-    pip install wyoming zeroconf pyring-buffer async-timeout ifaddr
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install wyoming zeroconf pyring-buffer async-timeout ifaddr scipy"
     
     # Install ReSpeaker drivers with SSH protection
     install_respeaker_safe
@@ -338,10 +383,10 @@ Wants=network.target
 
 [Service]
 Type=simple
-User=$(whoami)
-WorkingDirectory=/home/$(whoami)
-Environment=PATH=/home/$(whoami)/wyoming-satellite/bin
-ExecStart=/home/$(whoami)/wyoming-satellite/bin/wyoming-satellite \\
+User=$ACTUAL_USER
+WorkingDirectory=$USER_HOME
+Environment=PATH=$USER_HOME/wyoming-satellite/bin
+ExecStart=$USER_HOME/wyoming-satellite/bin/wyoming-satellite \\
     --name "$(hostname)" \\
     --uri tcp://0.0.0.0:10700 \\
     --mic-command "arecord -D plughw:CARD=seeed2micvoicec,DEV=0 -r 16000 -c 1 -f S16_LE -t raw" \\
@@ -364,10 +409,10 @@ Wants=network.target
 
 [Service]
 Type=simple
-User=$(whoami)
-WorkingDirectory=/home/$(whoami)
-Environment=PATH=/home/$(whoami)/wyoming-satellite/bin
-ExecStart=/home/$(whoami)/wyoming-satellite/bin/wyoming-openwakeword \\
+User=$ACTUAL_USER
+WorkingDirectory=$USER_HOME
+Environment=PATH=$USER_HOME/wyoming-satellite/bin
+ExecStart=$USER_HOME/wyoming-satellite/bin/wyoming-openwakeword \\
     --uri tcp://127.0.0.1:10400 \\
     --model ok_nabu \\
     --preload-model
@@ -394,13 +439,14 @@ EOF
     
     log "🎉 Setup complete!"
     log "📋 Services status:"
-    sudo systemctl status wyoming-satellite.service --no-pager -l
-    sudo systemctl status wyoming-openwakeword.service --no-pager -l
-    sudo systemctl status ssh.service --no-pager -l
+    sudo systemctl status wyoming-satellite.service --no-pager -l || true
+    sudo systemctl status wyoming-openwakeword.service --no-pager -l || true
+    sudo systemctl status ssh.service --no-pager -l || true
     
     log "🔧 To start services: sudo systemctl start wyoming-satellite wyoming-openwakeword"
-    log "📋 Setup log saved to: /home/$(whoami)/setup.log"
-    log "🔒 SSH backup available at: $(cat /home/$(whoami)/.ssh_backup_path 2>/dev/null || echo 'Unknown')"
+    log "📋 Setup log saved to: $USER_HOME/setup.log"
+    log "🔒 SSH backup available at: $(cat $USER_HOME/.ssh_backup_path 2>/dev/null || echo 'Unknown')"
+    log "🎤 To activate Wyoming environment: source $USER_HOME/activate_wyoming.sh"
 }
 
 # Run main function

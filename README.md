@@ -32,10 +32,12 @@ cd smarter-echo-bot
 
 ### **Step 3: Run SSH-Safe Setup**
 ```bash
-# Run SSH-safe setup
+# Run SSH-safe setup (DO NOT use sudo!)
 chmod +x setup_wyoming_satellite_v3.sh
 ./setup_wyoming_satellite_v3.sh
 ```
+
+**⚠️ IMPORTANT:** Run the script as a regular user, NOT with sudo. The script will use sudo internally where needed.
 
 ### **Step 4: Verify Everything Works**
 ```bash
