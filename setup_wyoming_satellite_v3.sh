@@ -305,9 +305,23 @@ main() {
     python3 -m venv /home/$(whoami)/wyoming-satellite
     source /home/$(whoami)/wyoming-satellite/bin/activate
     
-    # Install Wyoming packages
+    # Install Wyoming packages with dependency fix
     pip install --upgrade pip
-    pip install wyoming-satellite wyoming-openwakeword
+    
+    # Install TensorFlow Lite runtime first (fixes ARM64 dependency issues)
+    log "🔧 Installing TensorFlow Lite runtime for ARM64..."
+    pip install --extra-index-url https://google-coral.github.io/py-repo/ tflite_runtime
+    
+    # Install Wyoming packages separately to avoid conflicts
+    log "📦 Installing Wyoming Satellite..."
+    pip install wyoming-satellite
+    
+    log "📦 Installing Wyoming OpenWakeWord..."
+    pip install wyoming-openwakeword --no-deps
+    
+    # Install remaining dependencies manually
+    log "📦 Installing remaining dependencies..."
+    pip install wyoming zeroconf pyring-buffer async-timeout ifaddr
     
     # Install ReSpeaker drivers with SSH protection
     install_respeaker_safe
