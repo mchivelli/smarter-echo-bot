@@ -351,22 +351,30 @@ EOF
     
     # Install Wyoming packages with dependency fix
     log "📦 Installing Wyoming packages..."
-    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install --upgrade pip"
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install --upgrade pip wheel setuptools"
     
     # Install TensorFlow Lite runtime first (fixes ARM64 dependency issues)
     log "🔧 Installing TensorFlow Lite runtime for ARM64..."
     run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install --extra-index-url https://google-coral.github.io/py-repo/ tflite_runtime"
     
+    # Install pre-built wheels for faster installation
+    log "📦 Installing pre-built dependencies..."
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install --prefer-binary numpy scipy"
+    
+    # Install zeroconf from pre-built wheel if available
+    log "📦 Installing zeroconf (this may take a few minutes on ARM64)..."
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install --prefer-binary 'zeroconf>=0.88.0,<0.89.0' || pip install --no-build-isolation 'zeroconf>=0.88.0,<0.89.0'"
+    
     # Install Wyoming packages separately to avoid conflicts
     log "📦 Installing Wyoming Satellite..."
-    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install wyoming-satellite"
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install --no-deps wyoming-satellite"
     
     log "📦 Installing Wyoming OpenWakeWord..."
-    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install wyoming-openwakeword --no-deps"
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install --no-deps wyoming-openwakeword"
     
     # Install remaining dependencies manually
     log "📦 Installing remaining dependencies..."
-    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install wyoming zeroconf pyring-buffer async-timeout ifaddr scipy"
+    run_as_user "source $USER_HOME/wyoming-satellite/bin/activate && pip install wyoming pyring-buffer async-timeout ifaddr"
     
     # Install ReSpeaker drivers with SSH protection
     install_respeaker_safe
